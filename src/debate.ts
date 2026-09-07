@@ -131,6 +131,13 @@ const COST_PER_MILLION: Record<string, number> = {
   "gpt-5.3-codex": 20,
   "gpt-5.4": 10,
   "gpt-5.4-pro": 50,
+  // 2026-09 list prices, blended (input + output) / 2
+  "gpt-5.5": 18,
+  "gpt-5.5-pro": 105,
+  "gpt-5.6-luna": 0.7,
+  "gpt-5.6-terra": 7,
+  "gpt-5.6-sol": 12,
+  "gpt-6-astra": 30,
   "o3": 20,
   "o4-mini": 2,
   "deepseek-chat": 0.5,
@@ -172,6 +179,27 @@ export function estimateCost(models: string[], totalTokens: number): string {
   return `~$${cost.toFixed(4)}${suffix}`;
 }
 
+/** Models that take max_completion_tokens and only the default temperature. */
+export function usesReasoningParams(modelId: string): boolean {
+  return /^(gpt-[5-9]|o[0-9])/.test(modelId);
+}
+
+/**
+ * A 400 that names the request shape rather than the request content:
+ * "Unsupported parameter: 'max_tokens' ... Use 'max_completion_tokens'",
+ * "'temperature' does not support 0.7 with this model", or the reverse for
+ * an endpoint that predates max_completion_tokens.
+ */
+export function isParamShapeRejection(err: unknown): boolean {
+  const status = (err as { status?: number })?.status;
+  const message = err instanceof Error ? err.message : String(err);
+  return (
+    status === 400 &&
+    /max_tokens|max_completion_tokens|temperature/i.test(message) &&
+    /unsupported|not supported|does not support|unrecognized|unknown parameter/i.test(message)
+  );
+}
+
 async function callModel(
   model: ResolvedModel,
   label: string,
@@ -201,37 +229,34 @@ async function callModel(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const useNewTokenParam =
-      /^(gpt-5|o[0-9])/.test(model.modelId);
-
     const messages: OpenAI.ChatCompletionMessageParam[] = [
       { role: "system", content: systemMessage },
       { role: "user", content: userMessage },
     ];
 
-    // gpt-5.x and o-series reasoning models reject non-default temperature
-    // ("Only the default (1) value is supported."). They also use
-    // max_completion_tokens instead of max_tokens. Older models (gpt-4.x
-    // etc.) still accept the temperature: 0.7 we want for brainstorm
-    // creativity. Branch accordingly.
-    const response = useNewTokenParam
-      ? await client.chat.completions.create(
-          {
-            model: model.modelId,
-            messages,
-            max_completion_tokens: 8192,
-          },
-          { signal: controller.signal }
-        )
-      : await client.chat.completions.create(
-          {
-            model: model.modelId,
-            messages,
-            temperature: 0.7,
-            max_tokens: 4096,
-          },
-          { signal: controller.signal }
-        );
+    // Reasoning-generation models (gpt-5.x, gpt-6.x, o-series) reject
+    // non-default temperature ("Only the default (1) value is supported.")
+    // and use max_completion_tokens instead of max_tokens. Older models
+    // (gpt-4.x etc.) still accept the temperature: 0.7 we want for
+    // brainstorm creativity. The name check picks the first attempt; if the
+    // API rejects the parameter shape (a model newer than this regex, or a
+    // proxy that only knows one dialect), retry once with the other shape
+    // instead of failing the debate.
+    const reasoningFirst = usesReasoningParams(model.modelId);
+    const create = (reasoning: boolean) =>
+      client.chat.completions.create(
+        reasoning
+          ? { model: model.modelId, messages, max_completion_tokens: 8192 }
+          : { model: model.modelId, messages, temperature: 0.7, max_tokens: 4096 },
+        { signal: controller.signal }
+      );
+    let response: OpenAI.ChatCompletion;
+    try {
+      response = await create(reasoningFirst);
+    } catch (err: unknown) {
+      if (!isParamShapeRejection(err)) throw err;
+      response = await create(!reasoningFirst);
+    }
 
     const choice = response.choices[0];
     const content = choice?.message?.content;

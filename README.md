@@ -132,6 +132,10 @@ Set `BRAINSTORM_CONFIG` to point to a JSON config:
 Known providers (`openai`, `gemini`, `deepseek`, `groq`, `mistral`, `together`, `moonshot`,
 `minimax`, `glm`, `qwen`) don't need a `baseURL`.
 
+Any model id the provider serves works, including OpenAI's GPT-6 (`openai:gpt-6-astra`) and the
+gpt-5.x reasoning models: brainstorm picks the request shape each model expects and retries with
+the other shape if the API rejects it.
+
 ### Option 3: CLI Providers (use a subscription, not API credits)
 
 If you already pay for Claude Code, Codex, Gemini CLI, and friends, brainstorm can shell out to
