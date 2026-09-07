@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.7.0
+
+**GPT-6 support.**
+
+OpenAI's GPT-6 ships under the model id `gpt-6-astra` (there is no plain `gpt-6`). It takes the
+same request shape as gpt-5.x: `max_completion_tokens`, default temperature only. brainstorm gated
+that shape on a `gpt-5` / o-series name check, so `openai:gpt-6-astra` was sent the legacy
+parameters and failed with a 400.
+
+- The name check now covers `gpt-5` through `gpt-9` and the o-series.
+- If the API rejects the parameter shape anyway (a model newer than the check, or a proxy that
+  speaks only one dialect), the call is retried once with the other shape instead of failing the
+  debate. New model names no longer need a release to work.
+- Cost estimates know `gpt-5.5`, `gpt-5.5-pro`, `gpt-5.6-{luna,sol,terra}` and `gpt-6-astra`.
+- `openai:gpt-6-astra`, `openai:gpt-5.6-{luna,sol,terra}` and `openai:gpt-5.5` verified end to end.
+
 ## 1.6.0
 
 **CLI providers — debate on a subscription instead of API credits.**
