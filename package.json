@@ -47,6 +47,10 @@
     "type": "git",
     "url": "https://github.com/spranab/brainstorm-mcp.git"
   },
+  "homepage": "https://github.com/spranab/brainstorm-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/spranab/brainstorm-mcp/issues"
+  },
   "author": "Pranab <developer@pranab.co.in>",
   "license": "MIT",
   "dependencies": {

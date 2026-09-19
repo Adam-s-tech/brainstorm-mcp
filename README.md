@@ -20,6 +20,17 @@ styles. Hosted mode needs zero API keys.
 
 **Don't trust one AI. Make them argue.**
 
+## Quick start (60 seconds)
+
+```bash
+claude mcp add brainstorm -- npx -y brainstorm-mcp
+```
+
+Then ask Claude: *"Brainstorm using opus, sonnet, and haiku about whether we should use GraphQL or REST."*
+
+That runs in hosted mode: no API keys, no provider accounts. The debate uses the models already
+available in your environment, and you get the 3-bullet synthesis at the end.
+
 <p align="center">
   <img src="docs/hero.png" alt="brainstorm-mcp — Claude Opus vs GPT-5.4 vs DeepSeek debating" width="800"/>
 </p>
@@ -46,15 +57,10 @@ styles. Hosted mode needs zero API keys.
 - **Resilient** — One model failing doesn't abort the debate
 - **Cross-platform** — Works on macOS, Windows, and Linux
 
-## Install (60 seconds)
+## Install
 
-```bash
-claude mcp add brainstorm -- npx -y brainstorm-mcp
-```
-
-That is enough for hosted mode (no API keys — it debates using the models
-already available in your environment). Add provider keys to bring GPT,
-Gemini, DeepSeek, Groq or Ollama into the debate.
+The one-line command under Quick start is enough for hosted mode. Add provider keys to
+bring GPT, Gemini, DeepSeek, Groq or Ollama into the debate; per-client setup follows.
 
 ### Claude Code
 
