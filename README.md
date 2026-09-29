@@ -116,7 +116,7 @@ Known providers (`openai`, `gemini`, `deepseek`, `groq`, `mistral`, `together`, 
 Use `provider:default` (e.g. `openai:default`) to mean a provider's default model.
 
 Env-var detection: `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY`,
-`MINIMAX_API_KEY`, `ZAI_API_KEY`, `DASHSCOPE_API_KEY` (Qwen), `XAI_API_KEY` (Grok). Each also accepts
+`MINIMAX_API_KEY`, `ZAI_API_KEY`, `DASHSCOPE_API_KEY` (Qwen), `XAI_API_KEY` (Grok; `GROK_API_KEY` also works). Each also accepts
 `<PREFIX>_BASE_URL` and `<PREFIX>_DEFAULT_MODEL`.
 
 | Provider | Default model |

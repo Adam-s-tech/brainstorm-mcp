@@ -74,6 +74,12 @@ interface ConfigFile {
  * Env vars: OPENAI_API_KEY, OPENAI_DEFAULT_MODEL, etc.
  */
 export function loadProviders(): void {
+  // Grok is xAI's model family — same account, same key — and people name the
+  // variable either way.
+  if (!process.env.XAI_API_KEY && process.env.GROK_API_KEY) {
+    process.env.XAI_API_KEY = process.env.GROK_API_KEY;
+  }
+
   const configPath =
     process.env.BRAINSTORM_CONFIG ||
     resolve(process.cwd(), "brainstorm.config.json");

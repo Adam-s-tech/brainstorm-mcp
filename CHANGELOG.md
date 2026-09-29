@@ -9,7 +9,7 @@
   `glm` → `glm-5.3`, `qwen` → `qwen3.8-max`. `gemini-2.5-*` now returns 404 for new users, and
   DeepSeek no longer lists `deepseek-chat`/`deepseek-reasoner` (announced for retirement; they are
   still routed today but shouldn't be relied on). Moonshot's docs report Kimi K2.x as retired.
-- **New `xai` provider** (Grok, `grok-4.7`) via `XAI_API_KEY`. `qwen` is now also detected from
+- **New `xai` provider** (Grok, `grok-4.7`) via `XAI_API_KEY` (`GROK_API_KEY` is accepted as an alias). `qwen` is now also detected from
   `DASHSCOPE_API_KEY`.
 - **GPT-6 family** (`gpt-6-astra`, `gpt-6-sol`, `gpt-6.1-sol`, `gpt-6-luna`) gets
   `max_completion_tokens` and no `temperature`. Previously only `gpt-5*` and `o*` did, so GPT-6
