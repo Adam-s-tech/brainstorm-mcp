@@ -127,16 +127,37 @@ Set `BRAINSTORM_CONFIG` to point to a JSON config:
 ```json
 {
   "providers": {
-    "openai": { "model": "gpt-5.4", "apiKeyEnv": "OPENAI_API_KEY" },
-    "gemini": { "model": "gemini-2.5-flash", "apiKeyEnv": "GEMINI_API_KEY" },
-    "deepseek": { "model": "deepseek-chat", "apiKeyEnv": "DEEPSEEK_API_KEY" },
+    "openai": { "model": "gpt-6.1-sol", "apiKeyEnv": "OPENAI_API_KEY" },
+    "gemini": { "model": "gemini-3.8-flash", "apiKeyEnv": "GEMINI_API_KEY" },
+    "deepseek": { "model": "deepseek-flash", "apiKeyEnv": "DEEPSEEK_API_KEY" },
     "ollama": { "model": "llama3.1", "baseURL": "http://localhost:11434/v1" }
   }
 }
 ```
 
 Known providers (`openai`, `gemini`, `deepseek`, `groq`, `mistral`, `together`, `moonshot`,
-`minimax`, `glm`, `qwen`) don't need a `baseURL`.
+`minimax`, `glm`, `qwen`, `xai`) don't need a `baseURL`, and the ones with a built-in default model
+(`openai`, `gemini`, `deepseek`, `moonshot`, `minimax`, `glm`, `qwen`, `xai`) don't need a `model` either.
+Use `provider:default` (e.g. `openai:default`) to mean a provider's default model.
+
+Env-var detection: `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY`,
+`MINIMAX_API_KEY`, `ZAI_API_KEY`, `DASHSCOPE_API_KEY` (Qwen), `XAI_API_KEY` (Grok; `GROK_API_KEY` also works). Each also accepts
+`<PREFIX>_BASE_URL` and `<PREFIX>_DEFAULT_MODEL`.
+
+| Provider | Default model |
+|----------|---------------|
+| `openai` | `gpt-6.1-sol` (also `gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna`, `gpt-5.5`) |
+| `gemini` | `gemini-3.8-flash` (`gemini-3.1-pro-preview` for Pro) |
+| `deepseek` | `deepseek-flash` (`deepseek-v4-pro`) |
+| `xai` | `grok-4.7` |
+| `moonshot` | `kimi-k3` |
+| `minimax` | `MiniMax-M3` |
+| `glm` | `glm-5.3` |
+| `qwen` | `qwen3.8-max` |
+
+Reasoning models (GPT-5/6, o-series, Kimi K3, Gemini 3, DeepSeek V4, Grok 4+, GLM-5, MiniMax M3,
+Qwen 3.5+) are sent the token budget they need and no `temperature`; inline `<think>…</think>` blocks
+are stripped from replies.
 
 Any model id the provider serves works, including OpenAI's GPT-6 (`openai:gpt-6-astra`) and the
 gpt-5.x reasoning models: brainstorm picks the request shape each model expects and retries with
@@ -155,7 +176,7 @@ automatically at startup** — no configuration needed:
 Use them like any other provider:
 
 ```json
-{ "topic": "GraphQL vs REST", "models": ["claude:sonnet", "codex:default", "openai:gpt-5.4"] }
+{ "topic": "GraphQL vs REST", "models": ["claude:sonnet", "codex:default", "openai:gpt-6.1-sol"] }
 ```
 
 Built-in adapters:
@@ -164,10 +185,10 @@ Built-in adapters:
 |----------|---------|---------------|--------|
 | `claude` | `claude -p` | `sonnet` | verified |
 | `codex` | `codex exec` | `default` | verified |
-| `gemini` | `gemini -p` | `gemini-2.5-pro` | best-effort, verify locally |
+| `gemini` | `gemini -p` | `default` | best-effort, verify locally |
 | `cursor-agent` | `cursor-agent -p` | `default` | best-effort |
 | `opencode` | `opencode run` | `default` | best-effort |
-| `qwen` | `qwen -p` | `qwen3-coder-plus` | best-effort |
+| `qwen` | `qwen -p` | `default` | best-effort |
 | `kimi` | `kimi --print` | `default` | best-effort |
 | `droid` | `droid exec` | `default` | best-effort |
 
@@ -216,9 +237,9 @@ already pay for:
 ```json
 {
   "providers": {
-    "moonshot": { "type": "cli", "backend": "moonshot", "model": "kimi-k2-thinking" },
-    "minimax":  { "type": "cli", "backend": "minimax",  "model": "MiniMax-M2" },
-    "glm":      { "type": "cli", "backend": "glm",      "model": "glm-4.6" }
+    "moonshot": { "type": "cli", "backend": "moonshot", "model": "kimi-k3" },
+    "minimax":  { "type": "cli", "backend": "minimax",  "model": "MiniMax-M3" },
+    "glm":      { "type": "cli", "backend": "glm",      "model": "glm-5.3" }
   }
 }
 ```

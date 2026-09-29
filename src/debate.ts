@@ -3,6 +3,12 @@ import { getClient } from "./client.js";
 import { callCliModel } from "./cli.js";
 import { isCliModel, resolveModel } from "./models.js";
 import {
+  alternateParamsFor,
+  samplingParamsFor,
+  stripThinkTags,
+  type SamplingParams,
+} from "./params.js";
+import {
   ResolvedModel,
   RoundResponse,
   DebateResult,
@@ -137,11 +143,18 @@ const COST_PER_MILLION: Record<string, number> = {
   "gpt-5.6-luna": 0.7,
   "gpt-5.6-terra": 7,
   "gpt-5.6-sol": 12,
-  "gpt-6-astra": 30,
+  "gpt-6-astra": 30, // $10 in / $50 out
+  "gpt-6-sol": 6, // $2 in / $10 out
+  "gpt-6.1-sol": 6, // $2 in / $10 out
+  "gpt-6-luna": 0.3, // $0.10 in / $0.50 out
   "o3": 20,
   "o4-mini": 2,
   "deepseek-chat": 0.5,
   "deepseek-reasoner": 2,
+  "deepseek-flash": 0.5, // $0.30 in / $1.20 out at peak
+  "deepseek-v4-pro": 2.5, // $1.32 in / $3.96 out at peak
+  "qwen3.8-max": 4, // $2 in / $6 out
+  "grok-4.7": 4, // $2 in / $6 out (<200k prompt)
   "gemini-2.5-pro": 5,
   "gemini-2.5-flash": 0.5,
   "gemini-2.0-flash": 0.3,
@@ -177,11 +190,6 @@ export function estimateCost(models: string[], totalTokens: number): string {
         ? ` (${cliCount} of ${models.length} via CLI subscriptions)`
         : "";
   return `~$${cost.toFixed(4)}${suffix}`;
-}
-
-/** Models that take max_completion_tokens and only the default temperature. */
-export function usesReasoningParams(modelId: string): boolean {
-  return /^(gpt-[5-9]|o[0-9])/.test(modelId);
 }
 
 /**
@@ -234,38 +242,37 @@ async function callModel(
       { role: "user", content: userMessage },
     ];
 
-    // Reasoning-generation models (gpt-5.x, gpt-6.x, o-series) reject
-    // non-default temperature ("Only the default (1) value is supported.")
-    // and use max_completion_tokens instead of max_tokens. Older models
-    // (gpt-4.x etc.) still accept the temperature: 0.7 we want for
-    // brainstorm creativity. The name check picks the first attempt; if the
-    // API rejects the parameter shape (a model newer than this regex, or a
-    // proxy that only knows one dialect), retry once with the other shape
-    // instead of failing the debate.
-    const reasoningFirst = usesReasoningParams(model.modelId);
-    const create = (reasoning: boolean) =>
+    // Reasoning models reject/ignore temperature and need a bigger, sometimes
+    // differently named, token cap — samplingParamsFor picks the first attempt
+    // by model name. If the API rejects that parameter shape anyway (a model
+    // newer than the table, or a proxy that only speaks one dialect), retry
+    // once with the other shape instead of failing the debate.
+    const first = samplingParamsFor(model.modelId);
+    const create = (params: SamplingParams) =>
       client.chat.completions.create(
-        reasoning
-          ? { model: model.modelId, messages, max_completion_tokens: 8192 }
-          : { model: model.modelId, messages, temperature: 0.7, max_tokens: 4096 },
+        { model: model.modelId, messages, ...params },
         { signal: controller.signal }
       );
     let response: OpenAI.ChatCompletion;
     try {
-      response = await create(reasoningFirst);
+      response = await create(first);
     } catch (err: unknown) {
       if (!isParamShapeRejection(err)) throw err;
-      response = await create(!reasoningFirst);
+      response = await create(alternateParamsFor(first));
     }
 
     const choice = response.choices[0];
-    const content = choice?.message?.content;
+    const content = choice?.message?.content
+      ? stripThinkTags(choice.message.content)
+      : "";
     if (!content) {
       const finishReason = choice?.finish_reason || "unknown";
       const refusal = (choice?.message as any)?.refusal;
       const detail = refusal
         ? `refusal: ${refusal}`
-        : `finish_reason: ${finishReason}`;
+        : finishReason === "length"
+          ? "finish_reason: length — reasoning likely used up the output budget"
+          : `finish_reason: ${finishReason}`;
       throw new Error(
         `Model ${label} returned an empty response (${detail})`
       );

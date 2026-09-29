@@ -25,15 +25,18 @@ const KNOWN_BASE_URLS: Record<string, string> = {
   minimax: "https://api.minimax.io/v1",
   glm: "https://api.z.ai/api/paas/v4",
   qwen: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+  xai: "https://api.x.ai/v1",
 };
 
 const KNOWN_DEFAULT_MODELS: Record<string, string> = {
-  openai: "gpt-5.4",
-  deepseek: "deepseek-chat",
-  gemini: "gemini-2.5-flash",
-  moonshot: "kimi-k2-thinking",
-  minimax: "MiniMax-M2",
-  glm: "glm-4.6",
+  openai: "gpt-6.1-sol",
+  deepseek: "deepseek-flash",
+  gemini: "gemini-3.8-flash",
+  moonshot: "kimi-k3",
+  minimax: "MiniMax-M3",
+  glm: "glm-5.3",
+  qwen: "qwen3.8-max",
+  xai: "grok-4.7",
 };
 
 interface ConfigFileProvider {
@@ -71,6 +74,12 @@ interface ConfigFile {
  * Env vars: OPENAI_API_KEY, OPENAI_DEFAULT_MODEL, etc.
  */
 export function loadProviders(): void {
+  // Grok is xAI's model family — same account, same key — and people name the
+  // variable either way.
+  if (!process.env.XAI_API_KEY && process.env.GROK_API_KEY) {
+    process.env.XAI_API_KEY = process.env.GROK_API_KEY;
+  }
+
   const configPath =
     process.env.BRAINSTORM_CONFIG ||
     resolve(process.cwd(), "brainstorm.config.json");
@@ -103,7 +112,8 @@ export function loadProviders(): void {
           continue;
         }
 
-        if (!p.model) {
+        const model = p.model || KNOWN_DEFAULT_MODELS[name];
+        if (!model) {
           console.error(
             `[brainstorm] Skipping provider "${name}": no default model configured.`
           );
@@ -115,7 +125,7 @@ export function loadProviders(): void {
           kind: "api",
           baseURL,
           apiKeyEnvVar: p.apiKeyEnv || "NONE",
-          defaultModel: p.model,
+          defaultModel: model,
         });
       }
       console.error(
@@ -294,6 +304,8 @@ function loadFromEnvVars(): void {
     { name: "moonshot", prefix: "MOONSHOT" },
     { name: "minimax", prefix: "MINIMAX" },
     { name: "glm", prefix: "ZAI" },
+    { name: "qwen", prefix: "DASHSCOPE" },
+    { name: "xai", prefix: "XAI" },
   ];
 
   for (const b of builtins) {
@@ -398,7 +410,13 @@ export function resolveModel(identifier: string): ResolvedModel {
 
   return {
     provider: providerName,
-    modelId,
+    // "provider:default" means the provider's configured default model. CLI
+    // providers interpret "default" themselves (let the CLI pick), so only
+    // API providers are rewritten here.
+    modelId:
+      modelId === "default" && provider.kind === "api" && provider.defaultModel
+        ? provider.defaultModel
+        : modelId,
     kind: provider.kind,
     baseURL: provider.baseURL,
     apiKeyEnvVar: provider.apiKeyEnvVar,
