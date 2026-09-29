@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { getClient } from "./client.js";
 import { callCliModel } from "./cli.js";
 import { isCliModel, resolveModel } from "./models.js";
+import { samplingParamsFor, stripThinkTags } from "./params.js";
 import {
   ResolvedModel,
   RoundResponse,
@@ -131,10 +132,19 @@ const COST_PER_MILLION: Record<string, number> = {
   "gpt-5.3-codex": 20,
   "gpt-5.4": 10,
   "gpt-5.4-pro": 50,
+  "gpt-5.5": 18, // $5 in / $30 out
+  "gpt-6-astra": 30, // $10 in / $50 out
+  "gpt-6-sol": 6, // $2 in / $10 out
+  "gpt-6.1-sol": 6, // $2 in / $10 out
+  "gpt-6-luna": 0.3, // $0.10 in / $0.50 out
   "o3": 20,
   "o4-mini": 2,
   "deepseek-chat": 0.5,
   "deepseek-reasoner": 2,
+  "deepseek-flash": 0.5, // $0.30 in / $1.20 out at peak
+  "deepseek-v4-pro": 2.5, // $1.32 in / $3.96 out at peak
+  "qwen3.8-max": 4, // $2 in / $6 out
+  "grok-4.7": 4, // $2 in / $6 out (<200k prompt)
   "gemini-2.5-pro": 5,
   "gemini-2.5-flash": 0.5,
   "gemini-2.0-flash": 0.3,
@@ -201,46 +211,34 @@ async function callModel(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const useNewTokenParam =
-      /^(gpt-5|o[0-9])/.test(model.modelId);
-
     const messages: OpenAI.ChatCompletionMessageParam[] = [
       { role: "system", content: systemMessage },
       { role: "user", content: userMessage },
     ];
 
-    // gpt-5.x and o-series reasoning models reject non-default temperature
-    // ("Only the default (1) value is supported."). They also use
-    // max_completion_tokens instead of max_tokens. Older models (gpt-4.x
-    // etc.) still accept the temperature: 0.7 we want for brainstorm
-    // creativity. Branch accordingly.
-    const response = useNewTokenParam
-      ? await client.chat.completions.create(
-          {
-            model: model.modelId,
-            messages,
-            max_completion_tokens: 8192,
-          },
-          { signal: controller.signal }
-        )
-      : await client.chat.completions.create(
-          {
-            model: model.modelId,
-            messages,
-            temperature: 0.7,
-            max_tokens: 4096,
-          },
-          { signal: controller.signal }
-        );
+    // Reasoning models reject/ignore temperature and need a bigger, sometimes
+    // differently named, token cap — see samplingParamsFor.
+    const response = await client.chat.completions.create(
+      {
+        model: model.modelId,
+        messages,
+        ...samplingParamsFor(model.modelId),
+      },
+      { signal: controller.signal }
+    );
 
     const choice = response.choices[0];
-    const content = choice?.message?.content;
+    const content = choice?.message?.content
+      ? stripThinkTags(choice.message.content)
+      : "";
     if (!content) {
       const finishReason = choice?.finish_reason || "unknown";
       const refusal = (choice?.message as any)?.refusal;
       const detail = refusal
         ? `refusal: ${refusal}`
-        : `finish_reason: ${finishReason}`;
+        : finishReason === "length"
+          ? "finish_reason: length — reasoning likely used up the output budget"
+          : `finish_reason: ${finishReason}`;
       throw new Error(
         `Model ${label} returned an empty response (${detail})`
       );

@@ -1,16 +1,20 @@
 {
   "providers": {
     "openai": {
-      "model": "gpt-5.4",
+      "model": "gpt-6.1-sol",
       "apiKeyEnv": "OPENAI_API_KEY"
     },
     "gemini": {
-      "model": "gemini-2.5-flash",
+      "model": "gemini-3.8-flash",
       "apiKeyEnv": "GEMINI_API_KEY"
     },
     "deepseek": {
-      "model": "deepseek-chat",
+      "model": "deepseek-flash",
       "apiKeyEnv": "DEEPSEEK_API_KEY"
+    },
+    "xai": {
+      "model": "grok-4.7",
+      "apiKeyEnv": "XAI_API_KEY"
     },
     "groq": {
       "model": "llama-3.3-70b-versatile",
@@ -33,17 +37,17 @@
     "moonshot": {
       "type": "cli",
       "backend": "moonshot",
-      "model": "kimi-k2-thinking"
+      "model": "kimi-k3"
     },
     "minimax": {
       "type": "cli",
       "backend": "minimax",
-      "model": "MiniMax-M2"
+      "model": "MiniMax-M3"
     },
     "glm": {
       "type": "cli",
       "backend": "glm",
-      "model": "glm-4.6"
+      "model": "glm-5.3"
     },
     "my-cli": {
       "type": "cli",

@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.6.1
+
+**Support for the latest models; fixes defaults that had stopped working.**
+
+- **Default models updated:** `openai` → `gpt-6.1-sol`, `gemini` → `gemini-3.8-flash`,
+  `deepseek` → `deepseek-flash`, `moonshot` → `kimi-k3`, `minimax` → `MiniMax-M3`,
+  `glm` → `glm-5.3`, `qwen` → `qwen3.8-max`. The old DeepSeek names (`deepseek-chat`,
+  `deepseek-reasoner`) were retired 2026-07-24 and Kimi K2.x on 2026-08-31, so those defaults
+  would have failed.
+- **New `xai` provider** (Grok, `grok-4.7`) via `XAI_API_KEY`. `qwen` is now also detected from
+  `DASHSCOPE_API_KEY`.
+- **GPT-6 family** (`gpt-6-astra`, `gpt-6-sol`, `gpt-6.1-sol`, `gpt-6-luna`) gets
+  `max_completion_tokens` and no `temperature`. Previously only `gpt-5*` and `o*` did, so GPT-6
+  requests would have been sent `max_tokens` and rejected.
+- **Thinking models** (Kimi K3, Gemini 3.x, DeepSeek V4, Grok 4+, GLM-5+, MiniMax M3+, Qwen 3.5+)
+  are sent no `temperature` and an 8192 output cap, since reasoning tokens count against it.
+  Previously a 4096 cap could return an empty reply; that failure now says the reasoning budget was
+  likely exhausted.
+- Inline `<think>…</think>` blocks (MiniMax, R1-style distills) are stripped from replies.
+- `provider:default` now resolves to the provider's default model for API providers (it used to send
+  the literal string `default`). Providers in a config file may omit `model` when a default is known.
+- CLI failures now report the actual `ERROR:` lines instead of the tail of an echoed prompt.
+- Cost estimates added for GPT-5.5, the GPT-6 family, DeepSeek V4, Qwen3.8 Max and Grok 4.7. Models
+  without a published price (e.g. Gemini 3.x) still use the generic fallback.
+- `gemini` and `qwen` CLI adapters no longer pin a model; the CLI picks its own default.
+
 ## 1.6.0
 
 **CLI providers — debate on a subscription instead of API credits.**

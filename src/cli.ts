@@ -101,7 +101,8 @@ export const BUILTIN_CLIS: Record<string, BuiltinCli> = {
 
   gemini: {
     command: "gemini",
-    defaultModel: "gemini-2.5-pro",
+    // Gemini 2.5 is limited to existing users now; let the CLI pick its own default.
+    defaultModel: CLI_DEFAULT_MODEL,
     promptVia: "arg",
     verified: false,
     note: "flags modelled on Gemini CLI docs; verify locally",
@@ -110,7 +111,7 @@ export const BUILTIN_CLIS: Record<string, BuiltinCli> = {
 
   qwen: {
     command: "qwen",
-    defaultModel: "qwen3-coder-plus",
+    defaultModel: CLI_DEFAULT_MODEL,
     promptVia: "arg",
     verified: false,
     note: "Qwen Code (Gemini-CLI fork); flags assumed identical, verify locally",
@@ -243,17 +244,17 @@ export const CLAUDE_CLI_BACKENDS: Record<
   moonshot: {
     baseURL: "https://api.moonshot.ai/anthropic",
     tokenEnv: "MOONSHOT_API_KEY",
-    defaultModel: "kimi-k2-thinking",
+    defaultModel: "kimi-k3",
   },
   minimax: {
     baseURL: "https://api.minimax.io/anthropic",
     tokenEnv: "MINIMAX_API_KEY",
-    defaultModel: "MiniMax-M2",
+    defaultModel: "MiniMax-M3",
   },
   glm: {
     baseURL: "https://api.z.ai/api/anthropic",
     tokenEnv: "ZAI_API_KEY",
-    defaultModel: "glm-4.6",
+    defaultModel: "glm-5.3",
   },
 };
 
@@ -392,6 +393,30 @@ function spawnCli(
 }
 
 /**
+ * Agent CLIs often echo the whole prompt to stderr before failing, which buries
+ * the actual reason. Pull out the distinct "ERROR: ..." lines (unwrapping JSON
+ * error bodies) so the failure message says what went wrong.
+ */
+export function summarizeCliErrors(stderr: string): string {
+  const seen = new Set<string>();
+  for (const line of stderr.split("\n")) {
+    const m = line.match(/^\s*(?:error|fatal)\b[:\s]*(.*)$/i);
+    if (!m) continue;
+    let msg = m[1].trim();
+    if (msg.startsWith("{")) {
+      try {
+        const body = JSON.parse(msg);
+        msg = body?.error?.message ?? body?.message ?? msg;
+      } catch {
+        // not JSON after all — keep the raw line
+      }
+    }
+    if (msg) seen.add(msg);
+  }
+  return Array.from(seen).slice(-3).join(" | ").slice(0, 600);
+}
+
+/**
  * Run one prompt through a locally installed agent CLI and return its text.
  */
 export async function callCliModel(
@@ -468,7 +493,10 @@ export async function callCliModel(
     }
 
     if (result.code !== 0) {
-      const detail = stripAnsi(result.stderr).trim().slice(-600) || text.slice(-600);
+      const detail =
+        summarizeCliErrors(stripAnsi(result.stderr)) ||
+        stripAnsi(result.stderr).trim().slice(-600) ||
+        text.slice(-600);
       throw new Error(
         `CLI ${spec.command} exited with code ${result.code} for ${label}${detail ? `: ${detail}` : ""}`
       );
