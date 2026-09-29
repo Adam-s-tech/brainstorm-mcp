@@ -2,7 +2,12 @@ import OpenAI from "openai";
 import { getClient } from "./client.js";
 import { callCliModel } from "./cli.js";
 import { isCliModel, resolveModel } from "./models.js";
-import { samplingParamsFor, stripThinkTags } from "./params.js";
+import {
+  alternateParamsFor,
+  samplingParamsFor,
+  stripThinkTags,
+  type SamplingParams,
+} from "./params.js";
 import {
   ResolvedModel,
   RoundResponse,
@@ -132,7 +137,12 @@ const COST_PER_MILLION: Record<string, number> = {
   "gpt-5.3-codex": 20,
   "gpt-5.4": 10,
   "gpt-5.4-pro": 50,
-  "gpt-5.5": 18, // $5 in / $30 out
+  // 2026-09 list prices, blended (input + output) / 2
+  "gpt-5.5": 18,
+  "gpt-5.5-pro": 105,
+  "gpt-5.6-luna": 0.7,
+  "gpt-5.6-terra": 7,
+  "gpt-5.6-sol": 12,
   "gpt-6-astra": 30, // $10 in / $50 out
   "gpt-6-sol": 6, // $2 in / $10 out
   "gpt-6.1-sol": 6, // $2 in / $10 out
@@ -182,6 +192,22 @@ export function estimateCost(models: string[], totalTokens: number): string {
   return `~$${cost.toFixed(4)}${suffix}`;
 }
 
+/**
+ * A 400 that names the request shape rather than the request content:
+ * "Unsupported parameter: 'max_tokens' ... Use 'max_completion_tokens'",
+ * "'temperature' does not support 0.7 with this model", or the reverse for
+ * an endpoint that predates max_completion_tokens.
+ */
+export function isParamShapeRejection(err: unknown): boolean {
+  const status = (err as { status?: number })?.status;
+  const message = err instanceof Error ? err.message : String(err);
+  return (
+    status === 400 &&
+    /max_tokens|max_completion_tokens|temperature/i.test(message) &&
+    /unsupported|not supported|does not support|unrecognized|unknown parameter/i.test(message)
+  );
+}
+
 async function callModel(
   model: ResolvedModel,
   label: string,
@@ -217,15 +243,23 @@ async function callModel(
     ];
 
     // Reasoning models reject/ignore temperature and need a bigger, sometimes
-    // differently named, token cap — see samplingParamsFor.
-    const response = await client.chat.completions.create(
-      {
-        model: model.modelId,
-        messages,
-        ...samplingParamsFor(model.modelId),
-      },
-      { signal: controller.signal }
-    );
+    // differently named, token cap — samplingParamsFor picks the first attempt
+    // by model name. If the API rejects that parameter shape anyway (a model
+    // newer than the table, or a proxy that only speaks one dialect), retry
+    // once with the other shape instead of failing the debate.
+    const first = samplingParamsFor(model.modelId);
+    const create = (params: SamplingParams) =>
+      client.chat.completions.create(
+        { model: model.modelId, messages, ...params },
+        { signal: controller.signal }
+      );
+    let response: OpenAI.ChatCompletion;
+    try {
+      response = await create(first);
+    } catch (err: unknown) {
+      if (!isParamShapeRejection(err)) throw err;
+      response = await create(alternateParamsFor(first));
+    }
 
     const choice = response.choices[0];
     const content = choice?.message?.content

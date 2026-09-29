@@ -2,12 +2,34 @@
 # brainstorm-mcp
 
 [![npm](https://img.shields.io/npm/v/brainstorm-mcp)](https://www.npmjs.com/package/brainstorm-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/brainstorm-mcp)](https://www.npmjs.com/package/brainstorm-mcp)
+[![license](https://img.shields.io/npm/l/brainstorm-mcp)](https://github.com/spranab/brainstorm-mcp/blob/main/LICENSE)
 [![IdeaCred](https://ideacred.com/api/badge/spranab/brainstorm-mcp)](https://ideacred.com/profile/spranab)
 [![Product Hunt](https://img.shields.io/badge/Product%20Hunt-Launch-orange)](https://www.producthunt.com/products/brainstorm-3?launch=brainstorm-4)
 
-Multi-model AI brainstorming MCP server. Orchestrates debates between GPT, Gemini, DeepSeek, and Claude with structured synthesis. Includes instant quick mode, multi-model code review with verdicts, and red-team/Socratic styles. Hosted mode needs zero API keys.
+Ask one model a design question and you get one confident answer, with no
+signal about which parts it is unsure of. Ask three and the disagreement is
+the signal.
+
+brainstorm-mcp runs multi-round debates between GPT, Gemini, DeepSeek, Claude
+and local Ollama models from inside your editor: they see and critique each
+other's answers across rounds, then you get a 3-bullet synthesis —
+recommendation, key tradeoffs, strongest disagreement. Also does instant
+quick mode, multi-model code review with verdicts, and red-team/Socratic
+styles. Hosted mode needs zero API keys.
 
 **Don't trust one AI. Make them argue.**
+
+## Quick start (60 seconds)
+
+```bash
+claude mcp add brainstorm -- npx -y brainstorm-mcp
+```
+
+Then ask Claude: *"Brainstorm using opus, sonnet, and haiku about whether we should use GraphQL or REST."*
+
+That runs in hosted mode: no API keys, no provider accounts. The debate uses the models already
+available in your environment, and you get the 3-bullet synthesis at the end.
 
 <p align="center">
   <img src="docs/hero.png" alt="brainstorm-mcp — Claude Opus vs GPT-5.4 vs DeepSeek debating" width="800"/>
@@ -35,7 +57,10 @@ Multi-model AI brainstorming MCP server. Orchestrates debates between GPT, Gemin
 - **Resilient** — One model failing doesn't abort the debate
 - **Cross-platform** — Works on macOS, Windows, and Linux
 
-## Installation
+## Install
+
+The one-line command under Quick start is enough for hosted mode. Add provider keys to
+bring GPT, Gemini, DeepSeek, Groq or Ollama into the debate; per-client setup follows.
 
 ### Claude Code
 
@@ -133,6 +158,10 @@ Env-var detection: `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPSEEK_API_KEY`, `MOON
 Reasoning models (GPT-5/6, o-series, Kimi K3, Gemini 3, DeepSeek V4, Grok 4+, GLM-5, MiniMax M3,
 Qwen 3.5+) are sent the token budget they need and no `temperature`; inline `<think>…</think>` blocks
 are stripped from replies.
+
+Any model id the provider serves works, including OpenAI's GPT-6 (`openai:gpt-6-astra`) and the
+gpt-5.x reasoning models: brainstorm picks the request shape each model expects and retries with
+the other shape if the API rejects it.
 
 ### Option 3: CLI Providers (use a subscription, not API credits)
 
@@ -338,6 +367,21 @@ npm install
 npm run build
 npm start
 ```
+
+## Related projects
+
+Other agent infrastructure by the same author, built to be used together:
+
+- [saga-mcp](https://github.com/spranab/saga-mcp) — SQLite-backed project
+  tracker: once the debate settles, the decision goes somewhere durable.
+- [yantrikdb-mcp](https://github.com/yantrikos/yantrikdb-mcp) — persistent
+  cognitive memory so the agent remembers what you decided and why.
+- [swarmcode](https://github.com/spranab/swarmcode) — real-time channel
+  between Claude Code instances on different machines.
+- [truenas-mcp](https://github.com/spranab/truenas-mcp) — 278 TrueNAS SCALE
+  actions behind one hierarchical tool.
+- [mcpier](https://github.com/spranab/mcpier) — self-hosted MCP control plane
+  that keeps API keys off your clients.
 
 ## License
 

@@ -14,7 +14,7 @@ loadProviders();
 
 const server = new McpServer({
   name: "brainstorm",
-  version: "1.6.1",
+  version: "1.8.0",
 });
 
 registerBrainstormTool(server);

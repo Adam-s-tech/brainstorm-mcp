@@ -1,7 +1,7 @@
 {
   "name": "brainstorm-mcp",
   "mcpName": "io.github.spranab/brainstorm-mcp",
-  "version": "1.6.1",
+  "version": "1.8.0",
   "description": "MCP server for multi-round AI brainstorming debates across multiple models",
   "type": "module",
   "main": "dist/index.js",
@@ -36,11 +36,20 @@
     "ollama",
     "model-context-protocol",
     "multi-model",
-    "debate"
+    "debate",
+    "mcp-server",
+    "ai-agents",
+    "claude-code",
+    "gemini",
+    "code-review"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/spranab/brainstorm-mcp.git"
+  },
+  "homepage": "https://github.com/spranab/brainstorm-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/spranab/brainstorm-mcp/issues"
   },
   "author": "Pranab <developer@pranab.co.in>",
   "license": "MIT",

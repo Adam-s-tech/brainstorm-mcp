@@ -45,6 +45,16 @@ export function samplingParamsFor(modelId: string): SamplingParams {
 }
 
 /**
+ * The other request shape, for retrying after the API rejects the first:
+ * reasoning-style → legacy chat-style, and vice versa.
+ */
+export function alternateParamsFor(params: SamplingParams): SamplingParams {
+  return "max_completion_tokens" in params
+    ? { temperature: 0.7, max_tokens: 4096 }
+    : { max_completion_tokens: 8192 };
+}
+
+/**
  * Remove <think>…</think> blocks some providers (MiniMax, DeepSeek-R1 style
  * distills on Ollama/Groq) leave inline in the answer. An unterminated block —
  * the output was cut off mid-thought — is dropped too, since it contains no

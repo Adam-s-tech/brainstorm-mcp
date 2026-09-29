@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.6.1
+## 1.8.0
 
 **Support for the latest models; fixes defaults that had stopped working.**
 
@@ -11,10 +11,10 @@
   still routed today but shouldn't be relied on). Moonshot's docs report Kimi K2.x as retired.
 - **New `xai` provider** (Grok, `grok-4.7`) via `XAI_API_KEY` (`GROK_API_KEY` is accepted as an alias). `qwen` is now also detected from
   `DASHSCOPE_API_KEY`.
-- **GPT-6 family** (`gpt-6-astra`, `gpt-6-sol`, `gpt-6.1-sol`, `gpt-6-luna`) gets
-  `max_completion_tokens` and no `temperature`. Previously only `gpt-5*` and `o*` did, so GPT-6
-  requests would have been sent `max_tokens` and rejected.
-- **Thinking models** (Kimi K3, Gemini 3.x, DeepSeek V4, Grok 4+, GLM-5+, MiniMax M3+, Qwen 3.5+)
+- **GPT-6 family** (`gpt-6-astra`, `gpt-6-sol`, `gpt-6.1-sol`, `gpt-6-luna`): the 1.7.0 name check
+  already covers them; the new default `openai` model is `gpt-6.1-sol`.
+- **Per-model request table** (`src/params.ts`) generalises the 1.7.0 shape check and keeps its
+  retry-with-the-other-shape safety net. **Thinking models** (Kimi K3, Gemini 3.x, DeepSeek V4, Grok 4+, GLM-5+, MiniMax M3+, Qwen 3.5+)
   are sent no `temperature` (provider default) and an 8192 output cap, since reasoning tokens count
   against it — Kimi K3 and GLM-5.3 return empty replies (`finish_reason: length`) under a small cap.
   Previously a 4096 cap could do the same; that failure now says the reasoning budget was
@@ -26,6 +26,22 @@
 - Cost estimates added for GPT-5.5, the GPT-6 family, DeepSeek V4, Qwen3.8 Max and Grok 4.7. Models
   without a published price (e.g. Gemini 3.x) still use the generic fallback.
 - `gemini` and `qwen` CLI adapters no longer pin a model; the CLI picks its own default.
+
+## 1.7.0
+
+**GPT-6 support.**
+
+OpenAI's GPT-6 ships under the model id `gpt-6-astra` (there is no plain `gpt-6`). It takes the
+same request shape as gpt-5.x: `max_completion_tokens`, default temperature only. brainstorm gated
+that shape on a `gpt-5` / o-series name check, so `openai:gpt-6-astra` was sent the legacy
+parameters and failed with a 400.
+
+- The name check now covers `gpt-5` through `gpt-9` and the o-series.
+- If the API rejects the parameter shape anyway (a model newer than the check, or a proxy that
+  speaks only one dialect), the call is retried once with the other shape instead of failing the
+  debate. New model names no longer need a release to work.
+- Cost estimates know `gpt-5.5`, `gpt-5.5-pro`, `gpt-5.6-{luna,sol,terra}` and `gpt-6-astra`.
+- `openai:gpt-6-astra`, `openai:gpt-5.6-{luna,sol,terra}` and `openai:gpt-5.5` verified end to end.
 
 ## 1.6.0
 
