@@ -12,10 +12,11 @@
 const OPENAI_REASONING = /^(gpt-[5-9]|o[0-9])/;
 
 /**
- * Non-OpenAI models that think by default (or always). Sending a custom
- * temperature is either rejected (Kimi K3 fixes it), ignored (DeepSeek V4
- * thinking mode) or discouraged (Gemini 3 loops when it's lowered), so we
- * leave it at the provider default.
+ * Non-OpenAI models that think by default (or always). Vendors either fix
+ * temperature (Kimi K3), ignore it (DeepSeek V4 thinking mode) or advise
+ * against lowering it (Gemini 3), so we leave it at the provider default. The
+ * big win is the token cap: reasoning counts against it, and Kimi K3 / GLM-5.3
+ * return an empty reply when a small cap runs out mid-thought.
  */
 const THINKING = new RegExp(
   "^(" +

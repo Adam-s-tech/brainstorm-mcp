@@ -6,17 +6,18 @@
 
 - **Default models updated:** `openai` → `gpt-6.1-sol`, `gemini` → `gemini-3.8-flash`,
   `deepseek` → `deepseek-flash`, `moonshot` → `kimi-k3`, `minimax` → `MiniMax-M3`,
-  `glm` → `glm-5.3`, `qwen` → `qwen3.8-max`. The old DeepSeek names (`deepseek-chat`,
-  `deepseek-reasoner`) were retired 2026-07-24 and Kimi K2.x on 2026-08-31, so those defaults
-  would have failed.
+  `glm` → `glm-5.3`, `qwen` → `qwen3.8-max`. `gemini-2.5-*` now returns 404 for new users, and
+  DeepSeek no longer lists `deepseek-chat`/`deepseek-reasoner` (announced for retirement; they are
+  still routed today but shouldn't be relied on). Moonshot's docs report Kimi K2.x as retired.
 - **New `xai` provider** (Grok, `grok-4.7`) via `XAI_API_KEY`. `qwen` is now also detected from
   `DASHSCOPE_API_KEY`.
 - **GPT-6 family** (`gpt-6-astra`, `gpt-6-sol`, `gpt-6.1-sol`, `gpt-6-luna`) gets
   `max_completion_tokens` and no `temperature`. Previously only `gpt-5*` and `o*` did, so GPT-6
   requests would have been sent `max_tokens` and rejected.
 - **Thinking models** (Kimi K3, Gemini 3.x, DeepSeek V4, Grok 4+, GLM-5+, MiniMax M3+, Qwen 3.5+)
-  are sent no `temperature` and an 8192 output cap, since reasoning tokens count against it.
-  Previously a 4096 cap could return an empty reply; that failure now says the reasoning budget was
+  are sent no `temperature` (provider default) and an 8192 output cap, since reasoning tokens count
+  against it — Kimi K3 and GLM-5.3 return empty replies (`finish_reason: length`) under a small cap.
+  Previously a 4096 cap could do the same; that failure now says the reasoning budget was
   likely exhausted.
 - Inline `<think>…</think>` blocks (MiniMax, R1-style distills) are stripped from replies.
 - `provider:default` now resolves to the provider's default model for API providers (it used to send
